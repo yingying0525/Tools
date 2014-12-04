@@ -20,6 +20,9 @@ public class HtmlParser
     {
         String FileDir = args[0];
         String DataDir = args[1];
+        int countNoKey = 0;
+        int countNoContent = 0;
+        int countNoBaseInfo = 0;
 
         try
         {
@@ -32,8 +35,10 @@ public class HtmlParser
 
             File fileDir = new File(DataDir);
             String []dir_sec = fileDir.list();
-            for (String d : dir_sec)
+            int i;
+            for (i = 0; i < 500; i ++)
             {
+                String d = i + "";
                 System.out.println(d);
                 File fileDir_sec = new File(DataDir + File.separator + d);
                 String[] htmls = fileDir_sec.list();
@@ -84,73 +89,51 @@ public class HtmlParser
                             }
                             continue;
                         }
-
-                        Element dl = Doc.getElementById("catalog-holder-0");
-                        if (dl == null)
+                        Element baseInfoWrap = Doc.getElementById("baseInfoWrapDom");
+                        String baseInfo = "";
+                        if (baseInfoWrap == null)
                         {
-                            bwO.write(html + "\t" + keywords + "\t" + "NO_catalog-holder-0");
+                            bwO.write(html + "\t" + "NoBaseInfo");
                             bwO.newLine();
-                            continue;
-                        }
-                        Elements items = dl.getElementsByClass("z-catalog-i1");
-                        if (items.size() == 0)
-                        {
-                            bwO.write(html + "\t" + keywords + "\t" + "NO_z-catalog-i1");
-                            bwO.newLine();
-                            continue;
-                        }
-                        Element itemF = items.get(0);
-                        Elements Fas = itemF.getElementsByTag("a");
-                        if (Fas.size() == 0)
-                        {
-                            bwO.write(html + "\t" + keywords + "\t" + "NO_Fa");
-                            bwO.newLine();
-                            continue;
-                        }
-                        String textF = Fas.get(0).text();
-                        int indF = keywords.indexOf(textF);
-                        if (indF == -1)
-                        {
-                            bwO.write(html + "\t" + keywords + "\t" + "NO_indF");
-                            bwO.newLine();
-                            continue;
-                        }
-
-                        Element itemL = items.get(items.size() - 1);
-                        Elements Las = itemL.getElementsByTag("a");
-                        if (Las == null)
-                        {
-                            bwO.write(html + "\t" + keywords + "\t" + "NO_La");
-                            bwO.newLine();
-                            continue;
-                        }
-                        String textL = Las.get(0).text();
-                        int indL = keywords.indexOf(textL);
-                        if (indL == -1)
-                        {
-                            bwO.write(html + "\t" + keywords + "\t" + "NO_indL");
-                            bwO.newLine();
-                            continue;
-                        }
-                        indL = indL + textL.length();
-
-                        if (indF > indL)
-                        {
-                            bwO.write(html + "\t" + keywords  + "\t" + "indF_indL");
-                            bwO.newLine();
-                            continue;
-                        }
-                        String content,otherName;
-                        if (keywords.length() > indL)
-                        {
-                            indL = indL + 1;
-                            content = keywords.substring(indF, indL);
-                            otherName = keywords.substring(indL);
+                            countNoBaseInfo ++;
                         }
                         else
                         {
-                            content = keywords.substring(indF);
-                            otherName = "NoOtherName!";
+                            StringBuilder sb = new StringBuilder();
+                            Elements baseInfoItems = baseInfoWrap.getElementsByClass("biTitle");
+                            for (Element item : baseInfoItems)
+                            {
+                                sb.append(item.text() + ",");
+                            }
+                            baseInfo = sb.toString();
+                        }
+
+                        Element Con = Doc.getElementById("lemmaContent-0");
+                        String content = "";
+                        if (Con == null)
+                        {
+                            bwO.write(html + "\t" + "NoContent");
+                            bwO.newLine();
+                            countNoContent ++;
+                        }
+                        else
+                        {
+                            StringBuilder sb = new StringBuilder();
+                            Elements headlines = Con.getElementsByClass("headline-content");
+                            if (headlines.size() > 0)
+                            {
+                                for (Element head : headlines)
+                                {
+                                    sb.append(head.text() + ",");
+                                }
+                                content = sb.toString();
+                            }
+                            else
+                            {
+                                bwO.write(html + "\t" + "NoContent_headline");
+                                bwO.newLine();
+                                countNoContent ++;
+                            }
                         }
 
                         Elements h1 = Doc.getElementsByClass("lemmaTitleH1");
@@ -162,16 +145,15 @@ public class HtmlParser
                             title = Doc.title();
                             title = title.substring(0, title.length() - 5);
                         }
-                        //System.out.println(title);
 
-                        if (content.contains("经历") || content.contains("个人") || content.contains("生活") || content.contains("生平") || content.contains("家庭")
-                                || content.contains("履历") || content.contains("事迹") || content.contains("职务") || content.contains("社会活动")
-                                || content.contains("研究方向") || content.contains("研究领域") || content.contains("主要作品"))
-                        {
-                            bwP.write(html + "\t" + title + "\t" + otherName + "\t" + content);
-                            bwP.newLine();
-                            continue;
-                        }
+                        bwKey.write(html + " !##! " + title + " !##! " + keywords + " !##! " + content + " !##! " + baseInfo);
+                        bwKey.newLine();
+                    }
+                    else
+                    {
+                        bwO.write(html + "\t" + "NoKeywords");
+                        bwO.newLine();
+                        countNoKey ++;
                     }
                 }
             }
@@ -180,6 +162,10 @@ public class HtmlParser
             bwN.close();
             bwNew.close();
             bwO.close();
+            bwKey.close();
+            System.out.println("NoBaseInfo: " + countNoBaseInfo);
+            System.out.println("NoContent: " + countNoContent);
+            System.out.println("NoKeywords: " + countNoKey);
         } catch (Exception e)
         {
             e.printStackTrace();
